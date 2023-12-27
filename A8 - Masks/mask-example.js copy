@@ -1,0 +1,244 @@
+/* globals Vue, p5, masks, CONTOURS, Vector2D */
+(function () {
+  let mask = {
+    //=========================================================================================
+    // TODO: custom data
+
+    hide: false,
+    name: "examplemask", // Lowercase only no spaces! (we reuse this for some Vue stuff)
+    description: "a mask with some examples of drawing",
+
+    borderColor: [100, 100, 50],
+    eyeColor: [300, 100, 50],
+    backgroundTransparency: 1,
+
+    sunglassesLerp: -1,
+
+    // What kind of data does your bot need?
+
+    //=========================================================================================
+
+    setup({ p }) {
+      // Runs when you start this mask
+      console.log("START MASK - ", this.name);
+    },
+
+    drawBackground({ p }) {
+      console.log(this.backgroundTransparency);
+      p.background(100, 100, 100, this.backgroundTransparency);
+    },
+
+    setupHand({ p, hand }) {
+      // Any data that you need on each hand
+    },
+
+    setupFace({ p, face }) {
+      // Any data that you need on each face
+    },
+
+    drawHand({ p, hand }) {
+      let t = p.millis() * 0.001;
+
+      //       // Landmark-based- draw an emoji on each landmark
+      //       hand.landmarks.forEach((pt, index)=> {
+      //         let size= 40*p.noise(index + t)
+      //         // p.textSize(size)
+      //         // p.text("💔", ...pt)
+
+      //         p.rect(...pt, size, size)
+      //       })
+    },
+
+    drawFace({ p, face }) {
+      let t = p.millis() * 0.001;
+
+      // Landmark-based- draw an emoji on each landmark
+      //       face.landmarks.forEach((pt, index)=> {
+      //         let size= 40*p.noise(index + t)
+      //         // p.textSize(size)
+      //         // p.text("💔", ...pt)
+
+      //         p.rect(...pt, size, size)
+      //       })
+
+      // Available contours
+      // centerLine
+      // mouth 0-4
+      // sides[0-1].faceRings [0-2]
+      // sides[0-1].eyeRings [0-4]
+
+      // Do something for each side
+      face.forEachSide((SIDE_CONTOURS, sideIndex) => {
+        // each face countour
+        for (var i = 0; i < 2; i++) {
+          // Set color based on the side index, sides ahve different colors
+          let hue = sideIndex * 100;
+
+          let brightness = i * 20 + 50;
+          p.fill(hue, 100, brightness);
+          face.drawContour({
+            p,
+            contour: SIDE_CONTOURS.faceRings[i],
+            contour1: SIDE_CONTOURS.faceRings[i + 1],
+          });
+        }
+
+        face.drawContour({
+          p,
+          contour: SIDE_CONTOURS.faceRings[2],
+
+          // If I want to use the center line
+          contour1: CONTOURS.centerLine,
+        });
+      });
+
+      // You can get points by looking up individual landmarks
+      // I also added a few
+      // let nosePoint = face.landmarks[CONTOURS.centerLine[9]]
+      // let foreheadPoint = face.landmarks[CONTOURS.centerLine[0]]
+      // let chinPoint = face.landmarks[CONTOURS.centerLine[25]]
+      // p.circle(...nosePoint, 20)
+      // p.circle(...foreheadPoint, 20)
+      // p.circle(...chinPoint, 20)
+      p.stroke(0);
+      p.fill(100);
+      p.circle(...face.nose, 20);
+      p.circle(...face.forehead, 20);
+      p.circle(...face.chin, 20);
+      p.circle(...face.ears[0], 20);
+      p.circle(...face.ears[1], 20);
+      p.circle(...face.eyes[0], 20);
+      p.circle(...face.eyes[1], 20);
+
+      p.strokeWeight(2);
+      face.nose.drawArrow(p, {
+        v: face.offsetLength,
+        multiplyLength: 0.3,
+        color: [200, 100, 50],
+      });
+      face.nose.drawArrow(p, {
+        v: face.offsetWidth,
+        multiplyLength: 0.3,
+        color: [0, 100, 50],
+      });
+      face.offsetEars.forEach((earOffset, index) => {
+        face.ears[index].drawArrow(p, {
+          v: earOffset,
+          multiplyLength: 0.3,
+          color: [40, 100, 50],
+        });
+      });
+
+      // DRAW SUNGLASSES using the transformPoint technique to
+      face.forEachSide((SIDE_CONTOURS, sideIndex) => {
+        p.fill(0, 0, 0, 0.3);
+
+        let innerEye = face.landmarks[SIDE_CONTOURS.eyeRings[4][0]];
+
+        // Use every other point in this contour so it's smoother
+        let sunglassContour = SIDE_CONTOURS.eyeRings[0].filter(
+          (item, index) => index % 2 == 0
+        );
+
+        for (var i = 0; i < 3; i++) {
+          face.drawContour({
+            p,
+            // the finalPoint gets moved into position
+            transformPoint: (finalPoint, basePoint, index) => {
+              finalPoint.setToLerp(
+                basePoint,
+                innerEye,
+                this.sunglassesLerp + -0.3 * Math.sin(index * 3 + (3 + i) * t)
+              );
+            },
+            useCurveVertices: true,
+            contour: sunglassContour,
+          });
+        }
+      });
+
+      // HORNS
+      face.forEachSide((SIDE_CONTOURS, sideIndex) => {
+        let hornBase0 = face.landmarks[SIDE_CONTOURS.faceRings[1][2]];
+        let hornBase1 = face.landmarks[SIDE_CONTOURS.faceRings[1][4]];
+
+        // Make a horn tip, based on the different vectors derived from the face points
+        // ()
+        let hornTip = Vector2D.edgePoint({
+          pt0: hornBase0,
+          pt1: hornBase1,
+          pct: 0.5,
+        });
+        // let sideVector = face.offsetEars[sideIndex]; // A vector that points outward
+        let sideVector = face.offsetEyes[sideIndex]; // A vector that points outward
+       
+        hornTip
+          .addMultiple(face.offsetLength, .4) //  e.g, go up the length of the face,
+          .addMultiple(sideVector, 1); //  and then out in the direction of the ears from the nose
+
+        p.beginShape();
+        p.vertex(...hornBase0);
+        p.vertex(...hornBase1);
+        p.vertex(...hornTip);
+
+        p.endShape();
+      });
+
+      // Draw basic eye contours for the innermost eye
+      p.fill(320, 100, 50);
+      p.stroke(0);
+      face.drawContour({
+        p,
+        contour: CONTOURS.sides[0].eyeRings[4],
+        useCurveVertices: true,
+      });
+
+      p.fill(80, 100, 50);
+      p.stroke(0);
+      face.drawContour({
+        p,
+        contour: CONTOURS.sides[1].eyeRings[4],
+        useCurveVertices: true,
+      });
+      
+      // DRAW EACH EYE
+      face.eyes.forEach(eyePt => {
+        p.fill(0)
+        p.circle(...eyePt, 20)
+        
+         p.fill(100)
+        p.circle(eyePt.x, eyePt.y - 5, 10)
+      })
+    },
+  };
+
+  //============================================================
+  /**
+   * Input controls for this bot.
+   * Do we just need a chat input? Do we need anything else?
+   * What about game controls, useful buttons, sliders?
+   **/
+
+  Vue.component(`input-${mask.name}`, {
+    // Custom inputs for this bot
+    template: `<div>
+		
+			<div>
+				
+          border color:<color-picker v-model="mask.borderColor" />
+          eye color:<color-picker v-model="mask.eyeColor" />
+			     </div>
+			  <div> transparency: <input type="range" v-model="mask.backgroundTransparency" min="0" max="1" step=".1" /></div>
+			  <div>lerp: <input type="range" v-model="mask.sunglassesLerp" min="-2" max="0" step=".1" /></div>
+			</div>
+		</div>`,
+
+    // Custom data for these controls
+    data() {
+      return {};
+    },
+    props: { mask: { required: true, type: Object } }, // We need to have bot
+  });
+
+  masks.push(mask);
+})();
