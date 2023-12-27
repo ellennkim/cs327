@@ -1,0 +1,49 @@
+
+/*
+CUSTOMIZE YOUR BOT STYLES HERE, 
+If you use .bot-mybotname, it will only apply when that bot is active
+*/
+
+/* FOR FASHION BOT */
+#app.bot-drawingbot  {
+	background-color: pink;
+}
+
+.bot-fashionbot .chat-messages-holder {
+	margin: 2px;
+	border-radius: 10px;
+	background-color: rgb(227, 181, 204);
+	border: 3px solid white;
+}
+
+.bot-fashionbot .message-row-bot .message-text {
+	font-family: monospace;
+  background-color: white;
+}
+
+.bot-fashionbot .message-row-user .message-text {
+	font-family: monospace;
+  background-color: lightblue;
+}
+
+/* FOR EMOJI BOT */
+#app.bot-emojibot  {
+	background-color: lightyellow;
+}
+
+.bot-emojibot .chat-messages-holder {
+	margin: 2px;
+	border-radius: 10px;
+	background-color: rgb(230, 242, 255);
+	border: 3px solid white;
+}
+
+.bot-emojibot .message-row-bot .message-text {
+	font-family: monospace;
+  background-color: white;
+}
+
+.bot-emojibot .message-row-user .message-text {
+	font-family: monospace;
+  background-color: lightblue;
+}
